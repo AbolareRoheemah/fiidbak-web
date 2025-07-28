@@ -1,36 +1,96 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Fiidbak Web App
+
+Fiidbak is a decentralized platform for sharing, discovering, and reviewing web3 products. Built with Next.js, TypeScript, and wagmi, Fiidbak leverages smart contracts to enable transparent, on-chain feedback and rewards for product creators and reviewers.
+
+---
+
+## Table of Contents
+
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Getting Started](#getting-started)
+- [Environment Variables](#environment-variables)
+- [Project Structure](#project-structure)
+- [Usage](#usage)
+- [Smart Contract Integration](#smart-contract-integration)
+- [Contributing](#contributing)
+- [License](#license)
+
+---
+
+## Features
+
+- **Product Listing:** Browse and search web3 products with rich metadata.
+- **On-chain Feedback:** Submit and view feedback for products, stored on-chain.
+- **Wallet Authentication:** Connect with MetaMask, RainbowKit, or other EVM wallets.
+- **Rewards System:** Earn rewards for verified feedback and product contributions.
+- **User Profiles:** View your products, feedback, and rewards.
+- **File Uploads:** Upload product images via Pinata (IPFS).
+- **Category & Tag Filtering:** Discover products by category and tags.
+- **Responsive UI:** Modern, mobile-friendly interface.
+
+---
+
+## Tech Stack
+
+- **Frontend:** [Next.js](https://nextjs.org/), [React](https://react.dev/), [TypeScript](https://www.typescriptlang.org/)
+- **Web3:** [wagmi](https://wagmi.sh/), [RainbowKit](https://www.rainbowkit.com/)
+- **Smart Contracts:** Solidity (see `/contracts` repo)
+- **UI Icons:** [Lucide React](https://lucide.dev/)
+- **Notifications:** [Sonner](https://sonner.emilkowal.ski/)
+- **File Storage:** [Pinata](https://www.pinata.cloud/) (IPFS)
+- **Authentication:** [@campnetwork/origin](https://github.com/campnetwork/origin)
+
+---
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- Node.js (v18+ recommended)
+- npm, yarn, pnpm, or bun
+- Access to an EVM-compatible wallet (MetaMask, etc.)
+- Pinata API keys (for image uploads)
+- Smart contract deployed (see [Smart Contract Integration](#smart-contract-integration))
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Installation
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/yourusername/fiidbak-web.git
+   cd fiidbak-web
+   ```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+2. **Install dependencies:**
+   ```bash
+   npm install
+   # or
+   yarn
+   # or
+   pnpm install
+   # or
+   bun install
+   ```
 
-## Learn More
+3. **Configure environment variables:**  
+   See [Environment Variables](#environment-variables).
 
-To learn more about Next.js, take a look at the following resources:
+4. **Run the development server:**
+   ```bash
+   npm run dev
+   # or
+   yarn dev
+   # or
+   pnpm dev
+   # or
+   bun dev
+   ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+5. **Open your browser:**  
+   Visit [http://localhost:3000](http://localhost:3000)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+## Environment Variables
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Create a `.env.local` file in the root directory and add the following:
