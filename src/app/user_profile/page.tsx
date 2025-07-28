@@ -10,7 +10,7 @@ import {
   BarChart3,
 } from "lucide-react";
 import {
-  useAccount,
+  // useAccount,
   useReadContract,
   useWriteContract,
   useWaitForTransactionReceipt,

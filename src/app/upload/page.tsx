@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 import { abi } from '../utils/abi';
 import { getUploadedFile, uploadFileToPinata } from '../utils/pinata';
 // RainbowKit ConnectButton
-import { ConnectButton } from '@rainbow-me/rainbowkit';
+// import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { CampModal, useAuth } from '@campnetwork/origin/react';
 
 const contractAddress = process.env.NEXT_PUBLIC_CAMP_CONTRACT_ADDRESS as `0x${string}`;

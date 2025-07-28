@@ -6,7 +6,7 @@ import { useAuth } from '@campnetwork/origin/react';
 
 
 export default function HybridAuthButton() {
-    const { isLoggedIn, hasWallet, hasSocial, primaryId, authType } = useUnifiedAuth();
+    const { isLoggedIn, hasWallet, hasSocial, primaryId } = useUnifiedAuth();
     console.log("im in inn", isLoggedIn)
 
 

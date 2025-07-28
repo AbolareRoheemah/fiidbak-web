@@ -2,8 +2,8 @@
 import React from 'react'
 import { Star, Plus, User } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { ConnectButton } from '@rainbow-me/rainbowkit'
-import { CampModal, useAuth } from '@campnetwork/origin/react'
+// import { ConnectButton } from '@rainbow-me/rainbowkit'
+import { CampModal } from '@campnetwork/origin/react'
 
 export default function Header() {
   const router = useRouter()

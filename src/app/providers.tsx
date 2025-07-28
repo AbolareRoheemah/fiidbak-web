@@ -1,6 +1,6 @@
 'use client';
 import '@rainbow-me/rainbowkit/styles.css';
-import { lightTheme, RainbowKitProvider } from '@rainbow-me/rainbowkit';
+// import { lightTheme, RainbowKitProvider } from '@rainbow-me/rainbowkit';
 import { WagmiProvider } from 'wagmi';
 import { QueryClientProvider, QueryClient } from '@tanstack/react-query';
 import { CampProvider } from "@campnetwork/origin/react";
