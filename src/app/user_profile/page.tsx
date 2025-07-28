@@ -15,13 +15,14 @@ import {
   useWriteContract,
   useWaitForTransactionReceipt,
 } from "wagmi";
-import { ConnectButton } from "@rainbow-me/rainbowkit";
+// import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useRouter } from "next/navigation";
 import ProductCard from "../components/ProductCard";
 import StatCard from "../components/StatCard";
 import FeedbackManagement from "../components/FeedbackManagement";
 import { abi } from "../utils/abi";
 import { toast } from "sonner";
+import { CampModal, useAuth } from "@campnetwork/origin/react";
 
 const contractAddress = process.env
   .NEXT_PUBLIC_CONTRACT_ADDRESS as `0x${string}`;
@@ -57,7 +58,8 @@ interface UserStats {
 }
 
 export default function UserProfile() {
-  const { address, isConnected } = useAccount();
+  // const { address, isConnected } = useAccount();
+  const {isAuthenticated, walletAddress} = useAuth()
   const router = useRouter();
 
   const [activeTab, setActiveTab] = useState<
@@ -79,9 +81,9 @@ export default function UserProfile() {
     address: contractAddress,
     abi: abi,
     functionName: "getUserProducts",
-    args: address ? [address] : undefined,
+    args: walletAddress ? [walletAddress] : undefined,
     query: {
-      enabled: !!address,
+      enabled: !!walletAddress,
     },
   });
 
@@ -90,9 +92,9 @@ export default function UserProfile() {
     address: contractAddress,
     abi: abi,
     functionName: "getPendingRewards",
-    args: address ? [address] : undefined,
+    args: walletAddress ? [walletAddress] : undefined,
     query: {
-      enabled: !!address,
+      enabled: !!walletAddress,
     },
   });
 
@@ -101,9 +103,9 @@ export default function UserProfile() {
     address: contractAddress,
     abi: abi,
     functionName: "getPendingFeedbacks",
-    args: address ? [address] : undefined,
+    args: walletAddress ? [walletAddress] : undefined,
     query: {
-      enabled: !!address,
+      enabled: !!walletAddress,
     },
   });
 
@@ -120,7 +122,7 @@ export default function UserProfile() {
     });
 
   const handleClaimRewards = () => {
-    if (!isConnected) {
+    if (!isAuthenticated) {
       toast.error("Please connect your wallet first");
       return;
     }
@@ -158,7 +160,7 @@ export default function UserProfile() {
 
   // Process contract data
   useEffect(() => {
-    if (contractProducts && address) {
+    if (contractProducts && walletAddress) {
       // Convert BigInt values to numbers for easier handling
       const processedProducts = (contractProducts as Product[]).map(
         (product) => ({
@@ -198,7 +200,7 @@ export default function UserProfile() {
       });
 
       setIsLoading(false);
-    } else if (!isProductsLoading && address) {
+    } else if (!isProductsLoading && walletAddress) {
       setUserProducts([]);
       setUserStats({
         totalFeedback: 0,
@@ -207,7 +209,7 @@ export default function UserProfile() {
       });
       setIsLoading(false);
     }
-  }, [contractProducts, address, isProductsLoading, pendingRewards]);
+  }, [contractProducts, walletAddress, isProductsLoading, pendingRewards]);
 
   const formatAddress = (addr: string) => {
     if (!addr || typeof addr !== "string" || addr.length < 10) return "";
@@ -248,7 +250,7 @@ export default function UserProfile() {
   };
 
   // Check if user is not connected
-  if (!isConnected) {
+  if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-3xl p-8 shadow-xl max-w-md w-full text-center">
@@ -261,7 +263,11 @@ export default function UserProfile() {
           <p className="text-gray-600 mb-6">
             Please connect your wallet to view your profile.
           </p>
-          <ConnectButton />
+          {/* <ConnectButton /> */}
+          <CampModal 
+          wcProjectId={process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || ""}
+          onlyWagmi
+          />
         </div>
       </div>
     );
@@ -309,7 +315,7 @@ export default function UserProfile() {
             {/* Info and stats */}
             <div className="flex-1 w-full flex flex-col gap-2 text-center sm:text-left">
               <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1 break-all flex flex-col sm:flex-row items-center sm:items-baseline gap-2 sm:gap-2 justify-center sm:justify-start">
-                {formatAddress(address || "")}
+                {formatAddress(walletAddress || "")}
               </h2>
               <p className="text-gray-600 mb-2 text-sm sm:text-base flex items-center gap-1 justify-center sm:justify-start">
                 <span className="inline-block w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
