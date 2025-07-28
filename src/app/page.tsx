@@ -7,7 +7,7 @@ import StatCard from "./components/StatCard";
 import { useRouter } from "next/navigation";
 import { abi } from './utils/abi';
 
-const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as `0x${string}`;
+const contractAddress = process.env.NEXT_PUBLIC_CAMP_CONTRACT_ADDRESS as `0x${string}`;
 
 interface Product {
   id: bigint;

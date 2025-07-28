@@ -11,7 +11,7 @@ import { abi } from "../utils/abi";
 import ProductCard from "../components/ProductCard";
 import ProductListItem from "../components/ProductListItem";
 
-const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as `0x${string}` | undefined;
+const contractAddress = process.env.NEXT_PUBLIC_CAMP_CONTRACT_ADDRESS as `0x${string}` | undefined;
 
 // Product type based on your contract
 interface Product {

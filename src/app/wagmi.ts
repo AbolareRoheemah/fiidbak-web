@@ -1,7 +1,7 @@
 import '@rainbow-me/rainbowkit/styles.css';
 import { connectorsForWallets } from '@rainbow-me/rainbowkit';
 import { createConfig, http } from 'wagmi';
-import { baseSepolia, base } from 'wagmi/chains';
+import { baseSepolia, base, basecampTestnet } from 'wagmi/chains';
 import {
   metaMaskWallet,
   // coinbaseWallet,
@@ -40,8 +40,9 @@ const connectors = connectorsForWallets(
 
 export const config = createConfig({
   connectors,
-  chains: [baseSepolia, base],
+  chains: [basecampTestnet, baseSepolia, base],
   transports: {
+    [basecampTestnet.id]: http('https://rpc.basecamp.t.raas.gelato.cloud/'),
     [baseSepolia.id]: http('https://base-sepolia.g.alchemy.com/v2/4FF6xgfo305aOiFhplzY7M6AaWWZMmg_'),
     [base.id]: http(),
   },

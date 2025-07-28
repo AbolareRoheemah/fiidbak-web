@@ -12,7 +12,7 @@ import { getUploadedFile, uploadFileToPinata } from '../utils/pinata';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { CampModal, useAuth } from '@campnetwork/origin/react';
 
-const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as `0x${string}`;
+const contractAddress = process.env.NEXT_PUBLIC_CAMP_CONTRACT_ADDRESS as `0x${string}`;
 
 export default function UploadProduct() {
   const [formData, setFormData] = useState({
