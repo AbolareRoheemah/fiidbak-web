@@ -28,10 +28,7 @@ export default function Header() {
                   largeScreen: 'full',
                 }}
               /> */}
-              <CampModal 
-              wcProjectId={process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || ""}
-              onlyWagmi
-              />
+              <CampModal />
             </div>
           </div>
           {/* Actions */}
