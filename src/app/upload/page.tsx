@@ -5,12 +5,9 @@ import { useRouter } from 'next/navigation';
 import { useWriteContract, useWaitForTransactionReceipt, useAccount, useWalletClient } from 'wagmi';
 import { parseEther } from 'viem';
 import type { Address } from 'viem';
-// import { CustomConnectButton } from '../components/ConnectButton';
 import { toast } from 'sonner';
 import { abi } from '../utils/abi';
 import { getUploadedFile, uploadFileToPinata } from '../utils/pinata';
-// RainbowKit ConnectButton
-// import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { CampModal, useAuth } from '@campnetwork/origin/react';
 import { assignImage } from '../utils/assignImage';
 
@@ -34,6 +31,7 @@ export default function UploadProduct() {
   const [mintSuccess, setMintSuccess] = useState(false);
   const [mintError, setMintError] = useState<string | null>(null);
   const [mintedImageId, setMintedImageId] = useState<string | null>(null);
+  const [currentStep, setCurrentStep] = useState<'upload' | 'waitingTx' | 'minting' | 'done'>('upload');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const { walletAddress, origin, jwt } = useAuth();
@@ -144,8 +142,9 @@ export default function UploadProduct() {
     setMintError(null);
     setMintSuccess(false);
     setIsMinting(true);
+    setCurrentStep('minting');
 
-    // try {
+    try {
       if (!origin || !jwt) throw new Error("User not authenticated");
       if (!file) throw new Error("No file selected for minting");
 
@@ -159,14 +158,14 @@ export default function UploadProduct() {
         type: file.type || 'image/png'
       });
 
-      console.log("here 2", origin, walletAddress, jwt)
-
       const fileSizeMB = file.size / (1024 * 1024);
       if (fileSizeMB > 10) { // 10MB limit
         toast.error("File too large for minting.", {
           description: `File size is ${fileSizeMB.toFixed(2)}MB. Maximum allowed is 10MB.`,
           duration: 5000,
         });
+        setIsMinting(false);
+        setCurrentStep('done');
         return;
       }
 
@@ -176,8 +175,6 @@ export default function UploadProduct() {
         royaltyBps: 0,
         paymentToken: "0x0000000000000000000000000000000000000000" as Address,
       } as LicenseTerms;
-
-    console.log("licence", licence)
 
       // Prepare meta for minting
       const metadata = {
@@ -194,39 +191,16 @@ export default function UploadProduct() {
             trait_type: "Platform",
             value: "Fiidbak",
           },
-          // ...formData.tags.map(tag => ({
-          //   trait_type: "Tag",
-          //   value: tag
-          // }))
         ],
       };
 
-      console.log("meta", metadata)
-
-      console.log("file", file)
-      try {
-        // Mint NFT
-        console.log("Starting mint process...", {
-          fileSize: fileSizeMB.toFixed(2) + "MB",
-          walletAddress: walletAddress,
-          hasOrigin: !!origin,
-          fileName: file.name,
-          fileType: file.type
-        });
-        await origin.mintFile(mintFile, metadata, licence);
-        toast.success(`Minting successful! Your IP NFT is now live.`, {
-          duration: 5000,
-        });
-        setMintSuccess(true);
-      // }
-
-    // console.log("here 4 u")
-
-      // If mintResult is a string (imageId), assign it
-      // if (mintResult) {
-      //   await assignImage(mintResult, jwt);
-      //   setMintedImageId(mintResult);
-      // }
+      // Mint NFT
+      await origin.mintFile(mintFile, metadata, licence);
+      toast.success(`Minting successful! Your IP NFT is now live.`, {
+        duration: 5000,
+      });
+      setMintSuccess(true);
+      setCurrentStep('done');
     } catch (error) {
       console.error("Minting failed:", error);
       
@@ -253,21 +227,41 @@ export default function UploadProduct() {
       });
       
       setMintError(errorMessage);
-      
+      setCurrentStep('done');
     } finally {
       setIsMinting(false);
     }
   };
 
-  // Handle success/error with useEffect
+  // Automatically start minting after upload is confirmed
   React.useEffect(() => {
     if (isConfirmed) {
-      console.log('Transaction confirmed!');
       setIsUploading(false);
       setUploadSuccess(true);
+      setCurrentStep('minting');
       toast.success('Product created successfully!');
-      
-      // Reset form after success
+      // Start minting automatically
+      handleMint();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isConfirmed]);
+
+  React.useEffect(() => {
+    if (writeError) {
+      setIsUploading(false);
+      setCurrentStep('upload');
+      toast.error('Failed to create product. Please try again.');
+    }
+    if (confirmError) {
+      setIsUploading(false);
+      setCurrentStep('upload');
+      toast.error('Transaction failed. Please try again.');
+    }
+  }, [writeError, confirmError]);
+
+  // Reset form after everything is done
+  React.useEffect(() => {
+    if (mintSuccess) {
       setTimeout(() => {
         setFormData({
           name: '',
@@ -282,22 +276,10 @@ export default function UploadProduct() {
         setUploadSuccess(false);
         setMintSuccess(false);
         setMintedImageId(null);
+        setCurrentStep('upload');
       }, 3000);
     }
-  }, [isConfirmed]);
-
-  React.useEffect(() => {
-    if (writeError) {
-      console.error('Write error:', writeError);
-      setIsUploading(false);
-      toast.error('Failed to create product. Please try again.');
-    }
-    if (confirmError) {
-      console.error('Confirm error:', confirmError);
-      setIsUploading(false);
-      toast.error('Transaction failed. Please try again.');
-    }
-  }, [writeError, confirmError]);
+  }, [mintSuccess]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -312,25 +294,15 @@ export default function UploadProduct() {
       return;
     }
 
-    console.log('Form submitted with data:', formData);
     setIsUploading(true);
+    setCurrentStep('waitingTx');
 
     try {
       let imageUrl = formData.imageUrl;
       if (file) {
-        console.log('Uploading file...');
         imageUrl = await uploadImageAndGetUrl();
-        console.log('File uploaded, URL:', imageUrl);
         setFormData(prev => ({ ...prev, imageUrl })); // update for minting
       }
-
-      console.log('Creating product with params:', {
-        name: formData.name,
-        description: formData.description,
-        imageUrl,
-        productUrl: formData.productUrl,
-        fee: "0.001"
-      });
 
       // Direct contract call
       writeContract({
@@ -347,14 +319,34 @@ export default function UploadProduct() {
       });
 
     } catch (error) {
-      console.error('Error in handleSubmit:', error);
       setIsUploading(false);
+      setCurrentStep('upload');
       toast.error('An error occurred. Please try again.');
     }
   };
 
   const isFormValid = formData.name && formData.description && formData.productUrl && formData.category;
   const isLoading = isWritePending || isConfirming || isUploading || isMinting;
+
+  // Helper for status message
+  function getStatusMessage() {
+    if (isUploading || isWritePending) {
+      return "Uploading your project and submitting transaction...";
+    }
+    if (isConfirming) {
+      return "Waiting for transaction confirmation...";
+    }
+    if (isMinting) {
+      return "Minting your NFT. Please approve the wallet prompts...";
+    }
+    if (mintSuccess) {
+      return "NFT minted successfully!";
+    }
+    if (mintError) {
+      return "Minting failed. Please try again.";
+    }
+    return null;
+  }
 
   // Check wallet connection
   if (!isConnected) {
@@ -364,11 +356,6 @@ export default function UploadProduct() {
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Connect Your Wallet</h2>
           <p className="text-gray-600 mb-6">Please connect your wallet to upload a product.</p>
           <div className="flex items-center justify-center">
-            {/* <ConnectButton
-              showBalance={false}
-              chainStatus="icon"
-              accountStatus="address"
-            /> */}
             <CampModal  wcProjectId="c60cf518020ddd5ecf81cdd353410df2" />
           </div>
         </div>
@@ -376,15 +363,42 @@ export default function UploadProduct() {
     );
   }
 
-  if (uploadSuccess) {
+  // Show loading overlay with status message if loading
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-3xl p-8 shadow-xl max-w-md w-full text-center">
+          <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6">
+            <div className="w-10 h-10 border-4 border-blue-400 border-t-transparent rounded-full animate-spin" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Please Wait</h2>
+          <p className="text-gray-600 mb-6">{getStatusMessage()}</p>
+          {hash && (
+            <p className="text-sm text-gray-500 mb-2">
+              Transaction: {hash.slice(0, 10)}...{hash.slice(-8)}
+            </p>
+          )}
+          {mintError && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4 mt-2">
+              <p className="text-red-800 font-medium text-sm">Minting Failed</p>
+              <p className="text-red-700 text-sm mt-1">{mintError}</p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Show success after everything is done
+  if (mintSuccess) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-purple-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-3xl p-8 shadow-xl max-w-md w-full text-center">
           <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <Check className="w-8 h-8 text-green-600" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Project Uploaded!</h2>
-          <p className="text-gray-600 mb-6">Your project has been successfully added to the marketplace.</p>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Project Uploaded & NFT Minted!</h2>
+          <p className="text-gray-600 mb-6">Your project has been successfully added and your NFT is live.</p>
           <div className="space-y-3">
             {hash && (
               <p className="text-sm text-gray-500">
@@ -397,15 +411,12 @@ export default function UploadProduct() {
             >
               View Project
             </button>
-            {/* Mint NFT Success Message */}
-            {mintSuccess && (
+            {mintedImageId && (
               <div className="bg-green-50 border border-green-200 rounded-xl p-4 mt-4">
                 <p className="text-green-800 font-medium text-sm">NFT Minted!</p>
-                {mintedImageId && (
-                  <p className="text-green-700 text-sm mt-1">
-                    Image ID: {mintedImageId}
-                  </p>
-                )}
+                <p className="text-green-700 text-sm mt-1">
+                  Image ID: {mintedImageId}
+                </p>
               </div>
             )}
           </div>
@@ -428,11 +439,6 @@ export default function UploadProduct() {
             </div>
             {/* RainbowKit ConnectButton in header for convenience */}
             <div className="hidden sm:block">
-              {/* <ConnectButton
-                showBalance={false}
-                chainStatus="icon"
-                accountStatus="address"
-              /> */}
               <button
                 className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 rounded-xl font-medium hover:from-blue-700 hover:to-purple-700 transition-all duration-200 flex items-center gap-2 w-full sm:w-auto justify-center cursor-pointer"
                 disabled
@@ -670,27 +676,8 @@ export default function UploadProduct() {
                 </div>
               )}
 
-              {/* Mint NFT Button */}
-              <div className="flex gap-4 pt-2">
-                <button
-                  type="button"
-                  onClick={handleMint}
-                  disabled={!file || !isFormValid || isMinting || isUploading || isWritePending || isConfirming}
-                  className="flex-1 bg-gradient-to-r from-green-600 to-blue-600 text-white px-6 py-3 rounded-xl font-medium hover:from-green-700 hover:to-blue-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {isMinting ? (
-                    <>
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      Minting NFT...
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="w-5 h-5" />
-                      Mint NFT
-                    </>
-                  )}
-                </button>
-              </div>
+              {/* Mint NFT Button - REMOVED, now handled automatically */}
+
               {mintError && (
                 <div className="bg-red-50 border border-red-200 rounded-xl p-4 mt-2">
                   <p className="text-red-800 font-medium text-sm">Minting Failed</p>
