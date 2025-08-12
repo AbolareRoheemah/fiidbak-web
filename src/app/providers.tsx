@@ -20,7 +20,7 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
-      <CampProvider clientId={process.env.NEXT_PUBLIC_ORIGIN_CLIENT_ID || ""}>
+      <CampProvider clientId={process.env.NEXT_PUBLIC_ORIGIN_CLIENT_ID || "fce77d7a-8085-47ca-adff-306a933e76aa"}>
         {/* <RainbowKitProvider theme={lightTheme({
             accentColor: 'linear-gradient(90deg, #2563eb 0%, #9333ea 100%)',
             accentColorForeground: 'white',

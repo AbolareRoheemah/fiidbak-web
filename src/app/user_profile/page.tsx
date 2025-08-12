@@ -264,7 +264,7 @@ export default function UserProfile() {
             Please connect your wallet to view your profile.
           </p>
           {/* <ConnectButton /> */}
-          <CampModal />
+          <CampModal wcProjectId="c60cf518020ddd5ecf81cdd353410df2" />
         </div>
       </div>
     );

@@ -2,8 +2,9 @@
 import React, { useState, useRef } from 'react'
 import { Upload, Link, Image, ArrowLeft, Check, AlertCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useWriteContract, useWaitForTransactionReceipt, useAccount } from 'wagmi';
+import { useWriteContract, useWaitForTransactionReceipt, useAccount, useWalletClient } from 'wagmi';
 import { parseEther } from 'viem';
+import type { Address } from 'viem';
 // import { CustomConnectButton } from '../components/ConnectButton';
 import { toast } from 'sonner';
 import { abi } from '../utils/abi';
@@ -11,6 +12,7 @@ import { getUploadedFile, uploadFileToPinata } from '../utils/pinata';
 // RainbowKit ConnectButton
 // import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { CampModal, useAuth } from '@campnetwork/origin/react';
+import { assignImage } from '../utils/assignImage';
 
 const contractAddress = process.env.NEXT_PUBLIC_CAMP_CONTRACT_ADDRESS as `0x${string}`;
 
@@ -28,9 +30,14 @@ export default function UploadProduct() {
   const [dragActive, setDragActive] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string | null>(null);
+  const [isMinting, setIsMinting] = useState(false);
+  const [mintSuccess, setMintSuccess] = useState(false);
+  const [mintError, setMintError] = useState<string | null>(null);
+  const [mintedImageId, setMintedImageId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
-  const {walletAddress} = useAuth();
+  const { walletAddress, origin, jwt } = useAuth();
+  const { data: walletClient } = useWalletClient()
 
   // Direct wagmi hooks
   const { isConnected } = useAccount();
@@ -118,11 +125,138 @@ export default function UploadProduct() {
 
   const uploadImageAndGetUrl = async (): Promise<string> => {
     if (!file) return '';
-     const cid = await uploadFileToPinata(file);
-     if (!cid) throw new Error('Image upload failed');
-     const url = await getUploadedFile(cid);
-     if (!url) throw new Error('Image upload failed');
-     return url;
+    const cid = await uploadFileToPinata(file);
+    if (!cid) throw new Error('Image upload failed');
+    const url = await getUploadedFile(cid);
+    if (!url) throw new Error('Image upload failed');
+    return url;
+  };
+
+  type LicenseTerms = {
+    price: bigint;
+    duration: number;
+    royaltyBps: number;
+    paymentToken: Address;
+  };
+
+  // Mint NFT logic
+  const handleMint = async () => {
+    setMintError(null);
+    setMintSuccess(false);
+    setIsMinting(true);
+
+    // try {
+      if (!origin || !jwt) throw new Error("User not authenticated");
+      if (!file) throw new Error("No file selected for minting");
+
+      const imageUrl = await uploadImageAndGetUrl();
+
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      
+      // Create a new File object with proper naming
+      const mintFile = new File([blob], file.name || 'product-file.png', { 
+        type: file.type || 'image/png'
+      });
+
+      console.log("here 2", origin, walletAddress, jwt)
+
+      const fileSizeMB = file.size / (1024 * 1024);
+      if (fileSizeMB > 10) { // 10MB limit
+        toast.error("File too large for minting.", {
+          description: `File size is ${fileSizeMB.toFixed(2)}MB. Maximum allowed is 10MB.`,
+          duration: 5000,
+        });
+        return;
+      }
+
+      const licence = {
+        price: BigInt(0),
+        duration: 2629800, // 30 days in seconds
+        royaltyBps: 0,
+        paymentToken: "0x0000000000000000000000000000000000000000" as Address,
+      } as LicenseTerms;
+
+    console.log("licence", licence)
+
+      // Prepare meta for minting
+      const metadata = {
+        name: formData.name || "unnamed",
+        description: formData.description || "no description provided",
+        external_url: formData.productUrl,
+        image: imageUrl,
+        attributes: [
+          {
+            trait_type: "Category",
+            value: formData.category || "Unknown",
+          },
+          {
+            trait_type: "Platform",
+            value: "Fiidbak",
+          },
+          // ...formData.tags.map(tag => ({
+          //   trait_type: "Tag",
+          //   value: tag
+          // }))
+        ],
+      };
+
+      console.log("meta", metadata)
+
+      console.log("file", file)
+      try {
+        // Mint NFT
+        console.log("Starting mint process...", {
+          fileSize: fileSizeMB.toFixed(2) + "MB",
+          walletAddress: walletAddress,
+          hasOrigin: !!origin,
+          fileName: file.name,
+          fileType: file.type
+        });
+        await origin.mintFile(mintFile, metadata, licence);
+        toast.success(`Minting successful! Your IP NFT is now live.`, {
+          duration: 5000,
+        });
+        setMintSuccess(true);
+      // }
+
+    // console.log("here 4 u")
+
+      // If mintResult is a string (imageId), assign it
+      // if (mintResult) {
+      //   await assignImage(mintResult, jwt);
+      //   setMintedImageId(mintResult);
+      // }
+    } catch (error) {
+      console.error("Minting failed:", error);
+      
+      let errorMessage = "Minting failed. Please try again later.";
+      let errorDescription = error instanceof Error ? error.message : "An error occurred";
+      
+      if (errorDescription.includes("signature") || errorDescription.includes("Failed to get signature")) {
+        errorMessage = "Transaction signature failed.";
+        errorDescription = "Please check your wallet connection and approve the transaction when prompted.";
+      } else if (errorDescription.includes("network")) {
+        errorMessage = "Network error. Please check your connection.";
+        errorDescription = "Make sure you're connected to the correct network.";
+      } else if (errorDescription.includes("gas")) {
+        errorMessage = "Insufficient gas fees.";
+        errorDescription = "Please ensure you have enough gas for the transaction.";
+      } else if (errorDescription.includes("user rejected") || errorDescription.includes("User rejected")) {
+        errorMessage = "Transaction was rejected.";
+        errorDescription = "You declined the transaction. Please try again and approve when prompted.";
+      }
+
+      toast.error(errorMessage, {
+        description: errorDescription,
+        duration: 5000,
+      });
+      
+      setMintError(errorMessage);
+      
+    } finally {
+      setIsMinting(false);
+    }
   };
 
   // Handle success/error with useEffect
@@ -146,6 +280,8 @@ export default function UploadProduct() {
         setFile(null);
         setFilePreview(null);
         setUploadSuccess(false);
+        setMintSuccess(false);
+        setMintedImageId(null);
       }, 3000);
     }
   }, [isConfirmed]);
@@ -185,6 +321,7 @@ export default function UploadProduct() {
         console.log('Uploading file...');
         imageUrl = await uploadImageAndGetUrl();
         console.log('File uploaded, URL:', imageUrl);
+        setFormData(prev => ({ ...prev, imageUrl })); // update for minting
       }
 
       console.log('Creating product with params:', {
@@ -217,7 +354,7 @@ export default function UploadProduct() {
   };
 
   const isFormValid = formData.name && formData.description && formData.productUrl && formData.category;
-  const isLoading = isWritePending || isConfirming || isUploading;
+  const isLoading = isWritePending || isConfirming || isUploading || isMinting;
 
   // Check wallet connection
   if (!isConnected) {
@@ -232,7 +369,7 @@ export default function UploadProduct() {
               chainStatus="icon"
               accountStatus="address"
             /> */}
-            <CampModal />
+            <CampModal  wcProjectId="c60cf518020ddd5ecf81cdd353410df2" />
           </div>
         </div>
       </div>
@@ -260,6 +397,17 @@ export default function UploadProduct() {
             >
               View Project
             </button>
+            {/* Mint NFT Success Message */}
+            {mintSuccess && (
+              <div className="bg-green-50 border border-green-200 rounded-xl p-4 mt-4">
+                <p className="text-green-800 font-medium text-sm">NFT Minted!</p>
+                {mintedImageId && (
+                  <p className="text-green-700 text-sm mt-1">
+                    Image ID: {mintedImageId}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -519,6 +667,44 @@ export default function UploadProduct() {
                   <p className="text-red-700 text-sm mt-1">
                     {writeError?.message || confirmError?.message || 'An error occurred'}
                   </p>
+                </div>
+              )}
+
+              {/* Mint NFT Button */}
+              <div className="flex gap-4 pt-2">
+                <button
+                  type="button"
+                  onClick={handleMint}
+                  disabled={!file || !isFormValid || isMinting || isUploading || isWritePending || isConfirming}
+                  className="flex-1 bg-gradient-to-r from-green-600 to-blue-600 text-white px-6 py-3 rounded-xl font-medium hover:from-green-700 hover:to-blue-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {isMinting ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Minting NFT...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-5 h-5" />
+                      Mint NFT
+                    </>
+                  )}
+                </button>
+              </div>
+              {mintError && (
+                <div className="bg-red-50 border border-red-200 rounded-xl p-4 mt-2">
+                  <p className="text-red-800 font-medium text-sm">Minting Failed</p>
+                  <p className="text-red-700 text-sm mt-1">{mintError}</p>
+                </div>
+              )}
+              {mintSuccess && (
+                <div className="bg-green-50 border border-green-200 rounded-xl p-4 mt-2">
+                  <p className="text-green-800 font-medium text-sm">NFT Minted!</p>
+                  {mintedImageId && (
+                    <p className="text-green-700 text-sm mt-1">
+                      Image ID: {mintedImageId}
+                    </p>
+                  )}
                 </div>
               )}
 

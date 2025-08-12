@@ -2,7 +2,6 @@
 import React from 'react'
 import { Star, Plus, User } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-// import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { CampModal } from '@campnetwork/origin/react'
 
 export default function Header() {
@@ -13,11 +12,13 @@ export default function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col sm:flex-row items-center justify-between h-auto sm:h-16 py-4 sm:py-0 gap-4 sm:gap-0">
           {/* Logo and Title */}
-          <div className="flex items-center gap-3 mb-2 sm:mb-0 cursor-pointer" onClick={() => router.push("/")}>
+          <div className="flex items-center gap-3 mb-2 sm:mb-0 cursor-pointer">
+            <div className="flex items-center gap-3 mb-2 sm:mb-0 cursor-pointer" onClick={() => router.push("/")}>
             <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
               <Star className="w-5 h-5 text-white" />
             </div>
             <h1 className="text-xl font-bold text-gray-900">Fiidbak</h1>
+            </div>
             {/* Wallet Connect */}
             <div className="flex items-center ml-4">
               {/* <ConnectButton
@@ -28,7 +29,7 @@ export default function Header() {
                   largeScreen: 'full',
                 }}
               /> */}
-              <CampModal />
+              <CampModal wcProjectId="c60cf518020ddd5ecf81cdd353410df2" />
             </div>
           </div>
           {/* Actions */}
